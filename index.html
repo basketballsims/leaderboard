@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Summer Grind">
+<meta name="theme-color" content="#0D1B3E">
+<title>Summer Grind — Burlington Force</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --navy:#0D1B3E;
+  --gold:#F5A623;
+  --offwhite:#F4F2EC;
+  --muted:#6B7280;
+  --green:#15803D;
+  --red:#B91C1C;
+  --plus-bg:#1D3461;
+  --plus-text:#F5A623;
+  --minus-bg:#7F1D1D;
+  --minus-text:#FCA5A5;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite);color:var(--navy);font-size:16px;overflow-x:hidden}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+
+/* QUOTE */
+.quote-bar{background:var(--navy);padding:11px 14px 10px;display:flex;align-items:flex-start;gap:8px}
+.q-mark{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--gold);line-height:0.75;flex-shrink:0;margin-top:3px}
+.q-text{font-size:0.8rem;color:rgba(255,255,255,0.88);line-height:1.45;font-style:italic;flex:1}
+.q-loading{color:rgba(255,255,255,0.35);font-size:0.72rem}
+
+/* HERO */
+.hero{background:var(--navy);padding:0.7rem 1rem 0;text-align:center;border-top:1px solid rgba(255,255,255,0.07)}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);letter-spacing:2px;line-height:1}
+.hero-sub{font-size:0.62rem;color:rgba(255,255,255,0.4);letter-spacing:3px;text-transform:uppercase}
+
+/* PLAYER GREETING */
+.greeting-bar{background:var(--navy);padding:0.5rem 1rem 0.8rem;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.greeting-text{font-size:0.95rem;color:white;font-weight:700}
+.greeting-sub{font-size:0.62rem;color:rgba(255,255,255,0.4);margin-top:1px}
+.switch-btn{padding:5px 12px;border-radius:16px;border:1px solid rgba(255,255,255,0.25);background:transparent;color:rgba(255,255,255,0.55);font-size:0.62rem;font-weight:700;cursor:pointer;white-space:nowrap;letter-spacing:0.5px}
+
+/* MONTH TABS */
+.month-tabs{display:flex;gap:5px;justify-content:center;padding:0.6rem 1rem 0.8rem;background:var(--navy);border-top:1px solid rgba(255,255,255,0.06)}
+.mtab{padding:4px 14px;border-radius:20px;font-size:0.72rem;font-weight:700;cursor:pointer;border:1.5px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.38);background:transparent;letter-spacing:1px}
+.mtab.active{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+
+/* NAV */
+.nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.07)}
+.ntab{flex:1;padding:9px 2px 7px;text-align:center;font-size:0.58rem;font-weight:700;color:rgba(255,255,255,0.35);cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2.5px solid transparent}
+.ntab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* SECTIONS */
+.sec{display:none;padding:0.9rem}
+.sec.active{display:block}
+
+/* PLAYER PICKER SCREEN */
+.picker-screen{padding:1.2rem}
+.pick-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:1px;color:var(--navy);margin-bottom:0.4rem}
+.pick-sub{font-size:0.78rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.4}
+.player-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.player-btn{padding:12px 8px;border-radius:12px;border:2px solid #E8E6DF;background:white;cursor:pointer;text-align:center;transition:all 0.15s}
+.player-btn:active{transform:scale(0.95);border-color:var(--gold)}
+.pb-num{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;line-height:1}
+.pb-name{font-size:0.72rem;font-weight:700;color:var(--navy);margin-top:2px}
+
+/* SCOREBOARD */
+.scoreboard{background:var(--navy);border-radius:14px;padding:0.9rem 1rem;margin-bottom:0.9rem}
+.sb-top{display:flex;justify-content:space-between;align-items:flex-start}
+.sb-label{font-size:0.58rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:2px}
+.sb-pts{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--gold);line-height:1}
+.sb-sub{font-size:0.58rem;color:rgba(255,255,255,0.3);margin-top:3px}
+.sb-breakdown{display:flex;flex-direction:column;gap:3px;text-align:right}
+.sb-line{font-size:0.63rem;color:rgba(255,255,255,0.45)}
+.sb-line b{color:var(--gold);font-size:0.7rem}
+
+/* SHOT CARDS */
+.shot-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:0.9rem}
+.scard{background:white;border-radius:13px;padding:0.9rem 0.6rem;border:2px solid #E5E3DC;text-align:center}
+.scard.full{grid-column:1/-1}
+.s-icon{font-size:1.4rem;margin-bottom:2px}
+.s-lbl{font-size:0.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
+.s-zone{font-size:0.55rem;color:#9CA3AF;margin-bottom:5px;font-style:italic;line-height:1.3}
+.s-badge{font-size:0.58rem;font-weight:700;padding:2px 8px;border-radius:8px;display:inline-block;margin-bottom:8px}
+.bs{background:#FEF3C7;color:#92400E}
+.bm{background:#DBEAFE;color:#1E3A8A}
+.bl{background:#EDE9FE;color:#4C1D95}
+.ctr{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:5px}
+.cbtn{width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;font-size:1.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+.cbtn.m{background:var(--minus-bg);color:var(--minus-text)}
+.cbtn.p{background:var(--plus-bg);color:var(--plus-text)}
+.cbtn:active{transform:scale(0.82)}
+.cval-input{font-family:'Bebas Neue',sans-serif;font-size:2rem;width:56px;text-align:center;color:var(--navy);line-height:1;border:none;border-bottom:2px solid #D1D5DB;background:transparent;outline:none;padding:0 2px;-moz-appearance:textfield}
+.cval-input::-webkit-inner-spin-button,.cval-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.cval-input:focus{border-bottom-color:var(--gold)}
+.s-earned{font-size:0.64rem;font-weight:700;color:var(--green);min-height:14px}
+
+/* COACH BUTTON is now inline in greeting-bar */
+
+/* COACH MODAL OVERLAY */
+.modal-backdrop{display:none;min-height:520px;background:rgba(0,0,0,0.55);align-items:flex-start;justify-content:center;padding-top:2rem}
+.modal-backdrop.open{display:flex}
+.modal{background:white;border-radius:16px;padding:1.2rem;width:calc(100% - 2rem);max-width:380px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;color:var(--navy);margin-bottom:0.25rem}
+.modal-sub{font-size:0.7rem;color:var(--muted);margin-bottom:1rem;line-height:1.4}
+.pw-row{display:flex;gap:8px;margin-bottom:1rem}
+.pw-input{flex:1;padding:10px 12px;border-radius:8px;border:2px solid #E5E3DC;font-size:1rem;font-family:'DM Sans',sans-serif;outline:none;letter-spacing:4px}
+.pw-input:focus{border-color:var(--navy)}
+.pw-btn{padding:10px 16px;background:var(--navy);color:var(--gold);border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;cursor:pointer}
+.pw-err{font-size:0.7rem;color:var(--red);margin-top:-0.6rem;margin-bottom:0.8rem;display:none}
+.pw-err.show{display:block}
+.coach-panel{display:none}
+.coach-panel.open{display:block}
+.player-override-select{width:100%;padding:9px 12px;border-radius:8px;border:2px solid var(--navy);font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.85rem;background:white;appearance:none;margin-bottom:0.9rem}
+.override-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0.9rem}
+.override-field{display:flex;flex-direction:column;gap:3px}
+.override-lbl{font-size:0.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.override-input{padding:8px 10px;border-radius:8px;border:2px solid #E5E3DC;font-size:0.95rem;font-family:'DM Sans',sans-serif;font-weight:700;text-align:center;outline:none;width:100%;-moz-appearance:textfield}
+.override-input::-webkit-inner-spin-button,.override-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.override-input:focus{border-color:var(--navy)}
+.coach-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:0.2rem}
+.coach-save-btn{padding:11px;background:var(--navy);color:var(--gold);border:none;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;cursor:pointer}
+.coach-reset-btn{padding:11px;background:#7F1D1D;color:#FCA5A5;border:none;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;cursor:pointer}
+.modal-close{width:100%;padding:10px;background:#F4F2EC;color:var(--navy);border:none;border-radius:10px;font-weight:700;font-size:0.8rem;cursor:pointer;margin-top:0.7rem}
+
+/* GAME TIME CARDS */
+.gtitle{font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:1px;margin-bottom:0.55rem}
+.game-full-grid{display:grid;grid-template-columns:1fr;gap:9px;margin-bottom:0.9rem}
+.gcard-full{background:white;border-radius:13px;padding:0.8rem 0.75rem;border:2px solid #E5E3DC}
+.gcard-head{display:flex;align-items:center;gap:7px;margin-bottom:0.6rem}
+.g-icon{font-size:1.15rem}
+.g-lbl{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--navy);flex:1}
+.g-earned{font-size:0.7rem;font-weight:700;color:var(--green);min-width:60px;text-align:right}
+.time-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.tbtn{padding:7px 2px;border-radius:8px;border:1.5px solid #E5E3DC;background:#F9F8F5;cursor:pointer;font-size:0.62rem;font-weight:700;color:var(--muted);text-align:center;line-height:1.3;transition:all 0.15s}
+.tbtn span{display:block;font-size:0.58rem;font-weight:400;color:#9CA3AF;margin-top:2px}
+.tbtn.active{background:var(--navy);color:var(--gold);border-color:var(--navy)}
+.tbtn.active span{color:rgba(255,210,80,0.75)}
+.tbtn:active{transform:scale(0.93)}
+
+/* REMINDER + SAVE */
+.reminder{background:#FFFBEB;border:2px solid var(--gold);border-radius:11px;padding:0.75rem 0.9rem;margin-bottom:0.8rem;display:flex;gap:8px;align-items:flex-start}
+.r-icon{font-size:1.1rem;flex-shrink:0;margin-top:1px}
+.r-text{font-size:0.72rem;font-weight:700;color:#78350F;line-height:1.3}
+.r-sub{font-size:0.61rem;color:#92400E;margin-top:2px}
+.save-btn{width:100%;padding:15px;background:var(--gold);color:var(--navy);border:none;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:2px;cursor:pointer}
+.save-btn:active{opacity:0.88}
+
+/* TOAST */
+.toast{background:var(--navy);color:var(--gold);padding:9px 16px;border-radius:18px;font-weight:700;font-size:0.78rem;text-align:center;margin-bottom:0.7rem;display:none}
+.toast.show{display:block}
+
+/* LEADERBOARD */
+.lb-filter{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.85rem}
+.lbchip{padding:5px 11px;border-radius:14px;font-size:0.64rem;font-weight:700;cursor:pointer;border:1.5px solid #DDD;background:white;color:var(--muted)}
+.lbchip.active{background:var(--navy);color:var(--gold);border-color:var(--navy)}
+.lb-list{background:white;border-radius:12px;overflow:hidden;border:1.5px solid #E5E3DC}
+.lb-row{display:flex;align-items:center;gap:8px;padding:10px 11px;border-bottom:0.5px solid #F0EDE6}
+.lb-row:last-child{border-bottom:none}
+.lb-row.t1{background:#FFFBEB}.lb-row.t2{background:#F9FAFB}.lb-row.t3{background:#FFF5F0}
+.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;width:24px;text-align:center;flex-shrink:0}
+.lb-rank.r1{color:var(--gold)}.lb-rank.r2{color:#9CA3AF}.lb-rank.r3{color:#CD7F32}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.7rem;flex-shrink:0;color:white}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-weight:700;font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-rnk{font-size:0.58rem;color:var(--muted)}
+.lb-val{font-family:'Bebas Neue',sans-serif;font-size:1.15rem;text-align:right;flex-shrink:0}
+.lb-unit{font-size:0.58rem;font-weight:400}
+
+/* PRIZE BANNER */
+.prize-banner{background:var(--navy);border-radius:12px;padding:0.9rem;margin-bottom:0.9rem;text-align:center}
+.pb-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--gold);letter-spacing:1px}
+.pb-sub{font-size:0.66rem;color:rgba(255,255,255,0.48);margin-top:2px;line-height:1.4}
+.top5-row{display:flex;align-items:center;gap:7px;padding:7px 10px;background:rgba(255,255,255,0.06);border-radius:8px;margin-top:5px}
+.t5-pos{font-size:1rem;width:22px;flex-shrink:0}
+.t5-name{font-size:0.74rem;color:white;flex:1;font-weight:700}
+.t5-pts{font-family:'Bebas Neue',sans-serif;font-size:0.95rem;color:var(--gold)}
+
+/* MY STATS */
+.stats-sel select{width:100%;padding:10px 12px;border-radius:10px;border:2px solid var(--navy);font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.85rem;background:white;appearance:none;margin-bottom:0.9rem}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:0.9rem}
+.sp{background:white;border-radius:10px;padding:10px 8px;text-align:center;border:1.5px solid #E5E3DC}
+.sp-val{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;line-height:1}
+.sp-lbl{font-size:0.57rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-top:2px}
+.rank-card{background:white;border-radius:12px;padding:0.85rem;border:1.5px solid #E5E3DC;margin-bottom:0.9rem;text-align:center}
+.prog-sec{background:white;border-radius:12px;padding:0.9rem;border:1.5px solid #E5E3DC;margin-bottom:0.9rem}
+.prow{margin-bottom:10px}.prow:last-child{margin-bottom:0}
+.plbl{display:flex;justify-content:space-between;font-size:0.7rem;font-weight:700;margin-bottom:4px}
+.pbar{height:8px;background:#F0EDE6;border-radius:4px;overflow:hidden}
+.pfill{height:100%;border-radius:4px}
+.stitle{font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:1px;margin-bottom:0.6rem}
+.game-rec{background:white;border-radius:12px;border:1.5px solid #E5E3DC;overflow:hidden;margin-bottom:0.9rem}
+.gr-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:0.5px solid #F0EDE6;font-size:0.78rem}
+.gr-row:last-child{border-bottom:none}
+
+/* SCORING GUIDE */
+.sg-wrap{background:var(--navy);border-radius:12px;padding:0.9rem;color:white;margin-bottom:0.9rem}
+.sg-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid rgba(255,255,255,0.09);font-size:0.72rem}
+.sg-row:last-child{border-bottom:none}
+.sg-pts{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gold)}
+.rank-tiers{display:grid;gap:7px}
+.tier{background:white;border-radius:9px;padding:9px 12px;border:1.5px solid #E5E3DC;display:flex;align-items:center;gap:9px}
+.tier-name{font-weight:700;font-size:0.8rem}
+.tier-sub{font-size:0.63rem;color:var(--muted)}
+.loading-overlay{text-align:center;padding:2rem 1rem;color:var(--muted);font-size:0.8rem}
+</style>
+</head>
+<body>
+
+<h2 class="sr-only">Burlington Force summer grind tracker — personalized shot logger and live leaderboard</h2>
+
+<!-- PLAYER PICKER (shown only on first visit) -->
+<div id="pickerScreen" style="display:none">
+  <div style="background:var(--navy);padding:1.4rem 1rem 1rem;text-align:center">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);letter-spacing:2px">🏀 Summer Grind</div>
+    <div style="font-size:0.62rem;color:rgba(255,255,255,0.4);letter-spacing:3px;text-transform:uppercase;margin-top:2px">Burlington Force · Who are you?</div>
+  </div>
+  <div class="picker-screen">
+    <div class="pick-title">Pick your name</div>
+    <div class="pick-sub">We'll remember you on this device. You only need to do this once.</div>
+    <div class="player-list" id="playerList"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none">
+  <div class="quote-bar">
+    <div class="q-mark">"</div>
+    <div class="q-text q-loading" id="quoteText">Loading today's quote...</div>
+  </div>
+  <div class="hero">
+    <div class="hero-title">🏀 Summer Grind</div>
+    <div class="hero-sub">Burlington Force · Shot Tracker</div>
+  </div>
+  <div class="greeting-bar">
+    <div>
+      <div class="greeting-text" id="greetingName">Hey, player!</div>
+      <div class="greeting-sub" id="greetingDate"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+      <button class="switch-btn" onclick="switchPlayer()">Switch player</button>
+      <button class="switch-btn" onclick="openCoachModal()" style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.35);font-size:0.58rem">🔐 Admin</button>
+    </div>
+  </div>
+  <div class="month-tabs">
+    <button class="mtab active" onclick="setMonth('june',this)">June</button>
+    <button class="mtab" onclick="setMonth('july',this)">July</button>
+    <button class="mtab" onclick="setMonth('august',this)">August</button>
+  </div>
+  <div class="nav">
+    <div class="ntab active" onclick="showSec('log',this)">Log Shots</div>
+    <div class="ntab" onclick="showSec('board',this)">Leaderboard</div>
+    <div class="ntab" onclick="showSec('mystats',this)">My Stats</div>
+    <div class="ntab" onclick="showSec('guide',this)">Scoring</div>
+  </div>
+
+  <!-- LOG SHOTS -->
+  <div class="sec active" id="log">
+    <div class="toast" id="toast"></div>
+    <div class="scoreboard">
+      <div class="sb-top">
+        <div>
+          <div class="sb-label">Session points</div>
+          <div class="sb-pts" id="totalPts">0</div>
+          <div class="sb-sub">Keep grinding — every shot counts!</div>
+        </div>
+        <div class="sb-breakdown">
+          <div class="sb-line">Short: <b id="bd-s">0</b></div>
+          <div class="sb-line">Mid: <b id="bd-m">0</b></div>
+          <div class="sb-line">Long: <b id="bd-l">0</b></div>
+          <div class="sb-line">Game: <b id="bd-g">0</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="shot-grid">
+      <div class="scard">
+        <div class="s-icon">🎯</div>
+        <div class="s-lbl">Short</div>
+        <div class="s-zone">Inside charge circle &amp; layups</div>
+        <span class="s-badge bs">10 pts / 100</span>
+        <div class="ctr">
+          <button class="cbtn m" onclick="adj('short',-1)" aria-label="Remove short shot">−</button>
+          <input class="cval-input" id="sv-short" type="number" min="0" value="0" inputmode="numeric" onchange="adjSet('short',this.value)" aria-label="Short shots count">
+          <button class="cbtn p" onclick="adj('short',1)" aria-label="Add short shot">+</button>
+        </div>
+        <div class="s-earned" id="se-short"></div>
+      </div>
+      <div class="scard">
+        <div class="s-icon">🏹</div>
+        <div class="s-lbl">Mid</div>
+        <div class="s-zone">Charge circle to free throw line</div>
+        <span class="s-badge bm">20 pts / 100</span>
+        <div class="ctr">
+          <button class="cbtn m" onclick="adj('mid',-1)" aria-label="Remove mid shot">−</button>
+          <input class="cval-input" id="sv-mid" type="number" min="0" value="0" inputmode="numeric" onchange="adjSet('mid',this.value)" aria-label="Mid shots count">
+          <button class="cbtn p" onclick="adj('mid',1)" aria-label="Add mid shot">+</button>
+        </div>
+        <div class="s-earned" id="se-mid"></div>
+      </div>
+      <div class="scard full">
+        <div class="s-icon">💥</div>
+        <div class="s-lbl">Long</div>
+        <div class="s-zone">Beyond the free throw line</div>
+        <span class="s-badge bl">75 pts / 100</span>
+        <div class="ctr">
+          <button class="cbtn m" onclick="adj('long',-1)" aria-label="Remove long shot">−</button>
+          <input class="cval-input" id="sv-long" type="number" min="0" value="0" inputmode="numeric" onchange="adjSet('long',this.value)" aria-label="Long shots count">
+          <button class="cbtn p" onclick="adj('long',1)" aria-label="Add long shot">+</button>
+        </div>
+        <div class="s-earned" id="se-long"></div>
+      </div>
+    </div>
+    <div class="gtitle">Game Time</div>
+    <div class="game-full-grid">
+      <div class="gcard-full">
+        <div class="gcard-head"><span class="g-icon">👤</span><span class="g-lbl">1v1</span><span class="g-earned" id="gp-1v1"></span></div>
+        <div class="time-btns">
+          <button class="tbtn" data-game="1v1" data-mins="0"   onclick="setTime('1v1',0)"  >None</button>
+          <button class="tbtn" data-game="1v1" data-mins="15"  onclick="setTime('1v1',15)" >15 min<br><span>12 pts</span></button>
+          <button class="tbtn" data-game="1v1" data-mins="30"  onclick="setTime('1v1',30)" >30 min<br><span>24 pts</span></button>
+          <button class="tbtn" data-game="1v1" data-mins="45"  onclick="setTime('1v1',45)" >45 min<br><span>36 pts</span></button>
+          <button class="tbtn" data-game="1v1" data-mins="60"  onclick="setTime('1v1',60)" >60 min<br><span>48 pts</span></button>
+        </div>
+      </div>
+      <div class="gcard-full">
+        <div class="gcard-head"><span class="g-icon">👥</span><span class="g-lbl">3v3</span><span class="g-earned" id="gp-3v3"></span></div>
+        <div class="time-btns">
+          <button class="tbtn" data-game="3v3" data-mins="0"   onclick="setTime('3v3',0)"  >None</button>
+          <button class="tbtn" data-game="3v3" data-mins="15"  onclick="setTime('3v3',15)" >15 min<br><span>12 pts</span></button>
+          <button class="tbtn" data-game="3v3" data-mins="30"  onclick="setTime('3v3',30)" >30 min<br><span>24 pts</span></button>
+          <button class="tbtn" data-game="3v3" data-mins="45"  onclick="setTime('3v3',45)" >45 min<br><span>36 pts</span></button>
+          <button class="tbtn" data-game="3v3" data-mins="60"  onclick="setTime('3v3',60)" >60 min<br><span>48 pts</span></button>
+        </div>
+      </div>
+      <div class="gcard-full">
+        <div class="gcard-head"><span class="g-icon">🏟️</span><span class="g-lbl">5v5</span><span class="g-earned" id="gp-5v5"></span></div>
+        <div class="time-btns">
+          <button class="tbtn" data-game="5v5" data-mins="0"   onclick="setTime('5v5',0)"  >None</button>
+          <button class="tbtn" data-game="5v5" data-mins="15"  onclick="setTime('5v5',15)" >15 min<br><span>12 pts</span></button>
+          <button class="tbtn" data-game="5v5" data-mins="30"  onclick="setTime('5v5',30)" >30 min<br><span>24 pts</span></button>
+          <button class="tbtn" data-game="5v5" data-mins="45"  onclick="setTime('5v5',45)" >45 min<br><span>36 pts</span></button>
+          <button class="tbtn" data-game="5v5" data-mins="60"  onclick="setTime('5v5',60)" >60 min<br><span>48 pts</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="reminder">
+      <div class="r-icon">⚠️</div>
+      <div>
+        <div class="r-text">Don't forget to save your session!</div>
+        <div class="r-sub">Points won't show on the leaderboard until you save below.</div>
+      </div>
+    </div>
+    <button class="save-btn" onclick="saveSession()">💾 SAVE MY SESSION</button>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="sec" id="board">
+    <div class="prize-banner">
+      <div class="pb-title">🏆 Top 5 Win Prizes</div>
+      <div class="pb-sub">Season ends early August. Stay in the top 5 to win!</div>
+      <div id="top5list"></div>
+    </div>
+    <div class="lb-filter">
+      <button class="lbchip active" onclick="setLB('total',this)">Total Points</button>
+      <button class="lbchip" onclick="setLB('short',this)">Short</button>
+      <button class="lbchip" onclick="setLB('mid',this)">Mid</button>
+      <button class="lbchip" onclick="setLB('long',this)">Long</button>
+      <button class="lbchip" onclick="setLB('1v1',this)">1v1</button>
+      <button class="lbchip" onclick="setLB('3v3',this)">3v3</button>
+      <button class="lbchip" onclick="setLB('5v5',this)">5v5</button>
+    </div>
+    <div class="lb-list" id="lbList"><div class="loading-overlay">Loading...</div></div>
+  </div>
+
+  <!-- MY STATS -->
+  <div class="sec" id="mystats">
+    <div id="statsContent"><div class="loading-overlay">Loading your stats...</div></div>
+  </div>
+
+  <!-- SCORING GUIDE -->
+  <div class="sec" id="guide">
+    <div class="stitle">Scoring Matrix</div>
+    <div class="sg-wrap">
+      <div class="sg-row"><span>🎯 Short — inside charge circle / layups<br><small style="color:rgba(255,255,255,0.38);font-size:0.58rem">Per 100 shots made</small></span><span class="sg-pts">10 pts</span></div>
+      <div class="sg-row"><span>🏹 Medium — charge circle to free throw line<br><small style="color:rgba(255,255,255,0.38);font-size:0.58rem">Per 100 shots made</small></span><span class="sg-pts">20 pts</span></div>
+      <div class="sg-row"><span>💥 Long — beyond free throw line<br><small style="color:rgba(255,255,255,0.38);font-size:0.58rem">Per 100 shots made</small></span><span class="sg-pts">75 pts</span></div>
+    </div>
+    <div class="stitle">Game Time (all formats score equally)</div>
+    <div class="sg-wrap" style="margin-bottom:0.9rem">
+      <div class="sg-row"><span>15 minutes played</span><span class="sg-pts">12 pts</span></div>
+      <div class="sg-row"><span>30 minutes played</span><span class="sg-pts">24 pts</span></div>
+      <div class="sg-row"><span>45 minutes played</span><span class="sg-pts">36 pts</span></div>
+      <div class="sg-row"><span>60 minutes played</span><span class="sg-pts">48 pts</span></div>
+      <div class="sg-row" style="padding-top:8px"><span style="color:rgba(255,255,255,0.45);font-size:0.62rem">Applies to 1v1, 3v3, and 5v5 — same scoring for all formats</span><span></span></div>
+    </div>
+    <div class="stitle">Season Ranks</div>
+    <div class="rank-tiers">
+      <div class="tier"><span style="font-size:1.1rem">👑</span><div><div class="tier-name">Legend — 500+ pts</div><div class="tier-sub">Elite summer grinder</div></div></div>
+      <div class="tier"><span style="font-size:1.1rem">⚡</span><div><div class="tier-name">Bucket Getter — 300–499 pts</div><div class="tier-sub">Putting in serious work</div></div></div>
+      <div class="tier"><span style="font-size:1.1rem">🔥</span><div><div class="tier-name">Grinder — 150–299 pts</div><div class="tier-sub">Building the bag</div></div></div>
+      <div class="tier"><span style="font-size:1.1rem">🌱</span><div><div class="tier-name">Getting Started — 0–149 pts</div><div class="tier-sub">First rep is the hardest</div></div></div>
+    </div>
+  </div>
+  <!-- UNSAVED CHANGES MODAL -->
+  <div class="modal-backdrop" id="unsavedModal">
+    <div class="modal" style="text-align:center">
+      <div style="font-size:2rem;margin-bottom:0.5rem">⚠️</div>
+      <div class="modal-title" style="justify-content:center;display:block">You have unsaved shots!</div>
+      <div class="modal-sub" style="margin-bottom:1.2rem">You've logged shots or game time this session. Save now so your points count on the leaderboard.</div>
+      <button class="save-btn" onclick="saveFromWarning()" style="margin-bottom:0.6rem">💾 Save My Session</button>
+      <button class="modal-close" onclick="discardAndNav()" style="background:#FEE2E2;color:#991B1B">Discard &amp; leave</button>
+    </div>
+  </div>
+
+  <!-- COACH MODAL -->
+  <div class="modal-backdrop" id="coachModal">
+    <div class="modal">
+      <div class="modal-title">🔐 Admin Access</div>
+      <div class="modal-sub">Enter the admin password to override or reset any player's stats.</div>
+      <div id="pwSection">
+        <div class="pw-row">
+          <input class="pw-input" id="pwInput" type="password" inputmode="numeric" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPw()">
+          <button class="pw-btn" onclick="checkPw()">Enter</button>
+        </div>
+        <div class="pw-err" id="pwErr">Wrong password. Try again.</div>
+      </div>
+      <div class="coach-panel" id="coachPanel">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem">Select player to edit</div>
+        <select class="player-override-select" id="overridePlayer" onchange="loadOverridePlayer()">
+          <option value="">— Choose player —</option>
+          <option>Alex #0</option><option>Cameron #1</option><option>Ian #2</option><option>Nixon #3</option>
+          <option>Jonah #7</option><option>Justin #12</option><option>Ben #13</option><option>David #14</option>
+          <option>Nate #23</option><option>Andrei #25</option><option>Tommy #33</option><option>Cohen #77</option><option>Nathan #93</option>
+        </select>
+        <div class="override-grid">
+          <div class="override-field">
+            <div class="override-lbl">🎯 Short shots</div>
+            <input class="override-input" id="ov-short" type="number" min="0" value="0" inputmode="numeric">
+          </div>
+          <div class="override-field">
+            <div class="override-lbl">🏹 Mid shots</div>
+            <input class="override-input" id="ov-mid" type="number" min="0" value="0" inputmode="numeric">
+          </div>
+          <div class="override-field">
+            <div class="override-lbl">💥 Long shots</div>
+            <input class="override-input" id="ov-long" type="number" min="0" value="0" inputmode="numeric">
+          </div>
+          <div class="override-field">
+            <div class="override-lbl">👤 1v1 mins</div>
+            <input class="override-input" id="ov-1v1" type="number" min="0" step="15" value="0" inputmode="numeric">
+          </div>
+          <div class="override-field">
+            <div class="override-lbl">👥 3v3 mins</div>
+            <input class="override-input" id="ov-3v3" type="number" min="0" step="15" value="0" inputmode="numeric">
+          </div>
+          <div class="override-field">
+            <div class="override-lbl">🏟️ 5v5 mins</div>
+            <input class="override-input" id="ov-5v5" type="number" min="0" step="15" value="0" inputmode="numeric">
+          </div>
+        </div>
+        <div class="coach-actions">
+          <button class="coach-save-btn" onclick="coachSave()">💾 Save Changes</button>
+          <button class="coach-reset-btn" onclick="coachReset()">🗑 Reset Player</button>
+        </div>
+        <div class="toast" id="coachToast" style="margin-top:0.6rem;margin-bottom:0"></div>
+      </div>
+      <button class="modal-close" onclick="closeCoachModal()">Close</button>
+    </div>
+  </div>
+
+</div><!-- end mainApp -->
+
+<script>
+const PLAYERS=[
+  {name:'Alex',num:'#0',color:'#C62828'},{name:'Cameron',num:'#1',color:'#1565C0'},
+  {name:'Ian',num:'#2',color:'#2E7D32'},{name:'Nixon',num:'#3',color:'#6A1B9A'},
+  {name:'Jonah',num:'#7',color:'#00695C'},{name:'Justin',num:'#12',color:'#E65100'},
+  {name:'Ben',num:'#13',color:'#283593'},{name:'David',num:'#14',color:'#4E342E'},
+  {name:'Nate',num:'#23',color:'#AD1457'},{name:'Andrei',num:'#25',color:'#558B2F'},
+  {name:'Tommy',num:'#33',color:'#0277BD'},{name:'Cohen',num:'#77',color:'#D84315'},
+  {name:'Nathan',num:'#93',color:'#4527A0'}
+];
+
+const SM={short:0.1,mid:0.2,long:0.75};
+const TIME_OPTS=[0,15,30,45,60];
+const MINS_PTS=12/15;
+
+let currentPlayer=null;
+let playerData={};
+let lbFilter='total';
+let shots={short:0,mid:0,long:0};
+let gameMins={'1v1':0,'3v3':0,'5v5':0};
+
+function pkey(p){return p.name+' '+p.num;}
+function pcolor(name){const p=PLAYERS.find(x=>pkey(x)===name);return p?p.color:'#555';}
+function initials(name){return name.split(' ').map(w=>w.replace('#','')).filter(w=>w&&isNaN(w)).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+
+function seedFor(name){
+  return{short:0,mid:0,long:0,'1v1mins':60,'3v3mins':0,'5v5mins':0};
+}
+
+async function init(){
+  try{
+    const stored=localStorage.getItem('bf-player');
+    if(stored){currentPlayer=JSON.parse(stored);}
+  }catch(e){}
+
+  try{
+    const res=await window.storage.get('bf-grind-data');
+    if(res&&res.value){
+      playerData=JSON.parse(res.value);
+      PLAYERS.forEach(p=>{if(!playerData[pkey(p)])playerData[pkey(p)]=seedFor(pkey(p));});
+    } else {
+      PLAYERS.forEach(p=>{playerData[pkey(p)]=seedFor(pkey(p));});
+      await persist();
+    }
+  }catch(e){
+    PLAYERS.forEach(p=>{playerData[pkey(p)]=seedFor(pkey(p));});
+  }
+
+  if(currentPlayer){
+    showApp();
+  } else {
+    buildPicker();
+    document.getElementById('pickerScreen').style.display='block';
+  }
+  loadDailyQuote();
+}
+
+function buildPicker(){
+  const grid=document.getElementById('playerList');
+  grid.innerHTML=PLAYERS.map(p=>`
+    <button class="player-btn" onclick="selectPlayer('${pkey(p)}')" style="border-top:3px solid ${p.color}">
+      <div class="pb-num" style="color:${p.color}">${p.num}</div>
+      <div class="pb-name">${p.name}</div>
+    </button>`).join('');
+}
+
+function selectPlayer(key){
+  currentPlayer=key;
+  try{localStorage.setItem('bf-player',JSON.stringify(key));}catch(e){}
+  document.getElementById('pickerScreen').style.display='none';
+  showApp();
+}
+
+function switchPlayer(){
+  if(hasUnsaved()){
+    showUnsavedModal(()=>_doSwitch());
+    return;
+  }
+  _doSwitch();
+}
+
+function _doSwitch(){
+  currentPlayer=null;
+  try{localStorage.removeItem('bf-player');}catch(e){}
+  document.getElementById('mainApp').style.display='none';
+  buildPicker();
+  document.getElementById('pickerScreen').style.display='block';
+}
+
+function showApp(){
+  document.getElementById('mainApp').style.display='block';
+  const p=PLAYERS.find(x=>pkey(x)===currentPlayer)||{name:currentPlayer,num:''};
+  document.getElementById('greetingName').textContent='Hey, '+p.name+'! 💪';
+  const today=new Date();
+  document.getElementById('greetingDate').textContent=today.toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'});
+  renderLB();
+  renderStats();
+}
+
+function calcPts(p){
+  const d=playerData[p];
+  if(!d)return 0;
+  let pts=d.short*SM.short+d.mid*SM.mid+d.long*SM.long;
+  pts+=(d['1v1mins']||0)*MINS_PTS+(d['3v3mins']||0)*MINS_PTS+(d['5v5mins']||0)*MINS_PTS;
+  return Math.round(pts);
+}
+function getRank(pts){
+  if(pts>=500)return'👑 Legend';
+  if(pts>=300)return'⚡ Bucket Getter';
+  if(pts>=150)return'🔥 Grinder';
+  return'🌱 Getting Started';
+}
+
+function calcSession(){
+  let p=shots.short*SM.short+shots.mid*SM.mid+shots.long*SM.long;
+  p+=(gameMins['1v1']+gameMins['3v3']+gameMins['5v5'])*MINS_PTS;
+  return Math.round(p);
+}
+
+function adj(type,delta){
+  const inp=document.getElementById('sv-'+type);
+  shots[type]=Math.max(0,(parseInt(inp.value)||0)+delta);
+  inp.value=shots[type];
+  const earned=Math.round(shots[type]*SM[type]);
+  document.getElementById('se-'+type).textContent=earned>0?'+'+earned+' pts':'';
+  updateScoreboard();
+}
+
+function adjSet(type,val){
+  shots[type]=Math.max(0,parseInt(val)||0);
+  document.getElementById('sv-'+type).value=shots[type];
+  const earned=Math.round(shots[type]*SM[type]);
+  document.getElementById('se-'+type).textContent=earned>0?'+'+earned+' pts':'';
+  updateScoreboard();
+}
+
+function setTime(game,mins){
+  gameMins[game]=mins;
+  document.querySelectorAll(`.tbtn[data-game="${game}"]`).forEach(b=>{
+    b.classList.toggle('active',parseInt(b.dataset.mins)===mins);
+  });
+  const earned=Math.round(mins*MINS_PTS);
+  document.getElementById('gp-'+game).textContent=earned>0?'+'+earned+' pts':'';
+  updateScoreboard();
+}
+function updateScoreboard(){
+  document.getElementById('totalPts').textContent=calcSession();
+  document.getElementById('bd-s').textContent=Math.round(shots.short*SM.short);
+  document.getElementById('bd-m').textContent=Math.round(shots.mid*SM.mid);
+  document.getElementById('bd-l').textContent=Math.round(shots.long*SM.long);
+  const gp=Math.round((gameMins['1v1']+gameMins['3v3']+gameMins['5v5'])*MINS_PTS);
+  document.getElementById('bd-g').textContent=gp;
+}
+
+async function persist(){
+  try{await window.storage.set('bf-grind-data',JSON.stringify(playerData));}catch(e){}
+}
+
+async function saveSession(){
+  if(!currentPlayer){showToast('No player selected!');return;}
+  ['short','mid','long'].forEach(t=>{
+    shots[t]=Math.max(0,parseInt(document.getElementById('sv-'+t).value)||0);
+  });
+  const hasWork=shots.short||shots.mid||shots.long||gameMins['1v1']||gameMins['3v3']||gameMins['5v5'];
+  if(!hasWork){showToast('Log at least 1 shot or game first!');return;}
+  const earned=calcSession();
+  const d=playerData[currentPlayer];
+  d.short+=shots.short;d.mid+=shots.mid;d.long+=shots.long;
+  d['1v1mins']=(d['1v1mins']||0)+gameMins['1v1'];
+  d['3v3mins']=(d['3v3mins']||0)+gameMins['3v3'];
+  d['5v5mins']=(d['5v5mins']||0)+gameMins['5v5'];
+  await persist();
+  shots={short:0,mid:0,long:0};
+  gameMins={'1v1':0,'3v3':0,'5v5':0};
+  ['short','mid','long'].forEach(t=>{
+    document.getElementById('sv-'+t).value='0';
+    document.getElementById('se-'+t).textContent='';
+  });
+  ['1v1','3v3','5v5'].forEach(g=>{
+    document.getElementById('gp-'+g).textContent='';
+    document.querySelectorAll(`.tbtn[data-game="${g}"]`).forEach(b=>b.classList.remove('active'));
+  });
+  document.getElementById('totalPts').textContent='0';
+  ['bd-s','bd-m','bd-l','bd-g'].forEach(id=>document.getElementById(id).textContent='0');
+  const firstName=PLAYERS.find(x=>pkey(x)===currentPlayer)?.name||'Player';
+  clearDirty();
+  showToast('🔥 +'+earned+' pts saved, '+firstName+'! Leaderboard updated.');
+  renderLB();
+  renderStats();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+let isDirty=false;
+let pendingNavAction=null;
+
+function markDirty(){isDirty=true;}
+function clearDirty(){isDirty=false;}
+
+function hasUnsaved(){
+  const s=['short','mid','long'].some(t=>(parseInt(document.getElementById('sv-'+t)?.value)||0)>0);
+  const g=gameMins['1v1']>0||gameMins['3v3']>0||gameMins['5v5']>0;
+  return s||g;
+}
+
+function showUnsavedModal(onDiscard){
+  pendingNavAction=onDiscard;
+  document.getElementById('unsavedModal').classList.add('open');
+}
+
+async function saveFromWarning(){
+  document.getElementById('unsavedModal').classList.remove('open');
+  await saveSession();
+  if(pendingNavAction){pendingNavAction();pendingNavAction=null;}
+}
+
+function discardAndNav(){
+  document.getElementById('unsavedModal').classList.remove('open');
+  clearDirty();
+  if(pendingNavAction){pendingNavAction();pendingNavAction=null;}
+}
+
+function setMonth(m,el){
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function showSec(id,el){
+  if(id!=='log' && hasUnsaved()){
+    showUnsavedModal(()=>_doShowSec(id,el));
+    return;
+  }
+  _doShowSec(id,el);
+}
+
+function _doShowSec(id,el){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(el) el.classList.add('active');
+  else document.querySelectorAll('.ntab').forEach(t=>{if(t.getAttribute('onclick')?.includes("'"+id+"'"))t.classList.add('active');});
+  if(id==='board')renderLB();
+  if(id==='mystats')renderStats();
+}
+
+function setLB(f,el){
+  lbFilter=f;
+  document.querySelectorAll('.lbchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderLB();
+}
+
+function getStatVal(p,f){
+  const d=playerData[p];
+  if(!d)return 0;
+  if(f==='total')return calcPts(p);
+  if(f==='short')return d.short;
+  if(f==='mid')return d.mid;
+  if(f==='long')return d.long;
+  if(f==='1v1')return Math.round((d['1v1mins']||0)*MINS_PTS);
+  if(f==='3v3')return Math.round((d['3v3mins']||0)*MINS_PTS);
+  if(f==='5v5')return Math.round((d['5v5mins']||0)*MINS_PTS);
+  return 0;
+}
+
+function renderLB(){
+  const labels={total:'pts',short:'made',mid:'made',long:'made','1v1':'pts','3v3':'pts','5v5':'pts'};
+  const sorted=PLAYERS.slice().sort((a,b)=>getStatVal(pkey(b),lbFilter)-getStatVal(pkey(a),lbFilter));
+  document.getElementById('lbList').innerHTML=sorted.map((p,i)=>{
+    const rank=i+1;
+    const val=getStatVal(pkey(p),lbFilter);
+    const totalPts=calcPts(pkey(p));
+    const isCurrent=pkey(p)===currentPlayer;
+    const rowCls=(rank===1?'t1':rank===2?'t2':rank===3?'t3':'')+(isCurrent?' ':'');
+    const medal=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
+    const rankCls=rank<=3?'r'+rank:'';
+    return`<div class="lb-row ${rowCls}" style="${isCurrent?'border-left:3px solid var(--gold);':''}" >
+      <div class="lb-rank ${rankCls}">${medal}</div>
+      <div class="avatar" style="background:${p.color}">${p.name.slice(0,2).toUpperCase()}</div>
+      <div class="lb-info">
+        <div class="lb-name">${p.name} ${p.num}${isCurrent?' ⭐':''}</div>
+        <div class="lb-rnk">${getRank(totalPts)}</div>
+      </div>
+      <div class="lb-val">${val}<span class="lb-unit"> ${labels[lbFilter]}</span></div>
+    </div>`;
+  }).join('');
+
+  const top5=PLAYERS.slice().sort((a,b)=>calcPts(pkey(b))-calcPts(pkey(a))).slice(0,5);
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+  document.getElementById('top5list').innerHTML=top5.map((p,i)=>
+    `<div class="top5-row">
+      <div class="t5-pos">${medals[i]}</div>
+      <div class="t5-name">${p.name} ${p.num}</div>
+      <div class="t5-pts">${calcPts(pkey(p))} pts</div>
+    </div>`).join('');
+}
+
+function renderStats(){
+  const el=document.getElementById('statsContent');
+  if(!currentPlayer){el.innerHTML='<div class="loading-overlay">Select a player first</div>';return;}
+  const d=playerData[currentPlayer];
+  if(!d){el.innerHTML='<div class="loading-overlay">No data found</div>';return;}
+  const pts=calcPts(currentPlayer);
+  const rank=getRank(pts);
+  const nextRank=pts<150?150:pts<300?300:pts<500?500:null;
+  const prog=nextRank?Math.min(100,Math.round((pts/nextRank)*100)):100;
+  const totalSessions=(d['1v1mins']||0)+(d['3v3mins']||0)+(d['5v5mins']||0);
+  const totalGamePts=Math.round(totalSessions*MINS_PTS);
+  const allSorted=PLAYERS.slice().sort((a,b)=>calcPts(pkey(b))-calcPts(pkey(a)));
+  const pos=allSorted.findIndex(p=>pkey(p)===currentPlayer)+1;
+  const p=PLAYERS.find(x=>pkey(x)===currentPlayer)||{name:'Player',color:'#555'};
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.9rem;background:white;border-radius:12px;padding:12px;border:1.5px solid #E5E3DC">
+      <div style="width:44px;height:44px;border-radius:50%;background:${p.color};display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:1rem;flex-shrink:0">${p.name.slice(0,2).toUpperCase()}</div>
+      <div><div style="font-weight:700;font-size:0.95rem">${p.name} ${p.num}</div><div style="font-size:0.65rem;color:var(--muted)">${rank} · #${pos} on leaderboard</div></div>
+    </div>
+    <div class="sum-grid">
+      <div class="sp"><div class="sp-val" style="color:var(--gold)">${pts}</div><div class="sp-lbl">Total Pts</div></div>
+      <div class="sp"><div class="sp-val" style="color:#1565C0">#${pos} of ${PLAYERS.length}</div><div class="sp-lbl">Rank</div></div>
+      <div class="sp"><div class="sp-val">${d.short+d.mid+d.long}</div><div class="sp-lbl">Shots Made</div></div>
+      <div class="sp"><div class="sp-val">${totalSessions} min</div><div class="sp-lbl">Game Time</div></div>
+    </div>
+    <div class="rank-card">
+      <div style="font-size:1.5rem">${rank.split(' ')[0]}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:0.9rem;letter-spacing:1px;color:var(--navy)">${rank.split(' ').slice(1).join(' ')}</div>
+      ${nextRank
+        ?`<div style="font-size:0.64rem;color:var(--muted);margin-top:3px">${nextRank-pts} pts to next rank</div>
+          <div class="pbar" style="margin-top:6px"><div class="pfill" style="width:${prog}%;background:var(--gold)"></div></div>`
+        :'<div style="font-size:0.64rem;color:var(--gold);margin-top:3px;font-weight:700">Max rank achieved 👑</div>'}
+    </div>
+    <div class="stitle">Shot milestones</div>
+    <div class="prog-sec">
+      <div class="prow"><div class="plbl"><span>🎯 Short — ${d.short} made</span><span style="color:var(--muted)">${Math.min(100,Math.round(d.short/500*100))}% to 500</span></div>
+      <div class="pbar"><div class="pfill" style="width:${Math.min(100,d.short/5)}%;background:#FF8A65"></div></div></div>
+      <div class="prow"><div class="plbl"><span>🏹 Mid — ${d.mid} made</span><span style="color:var(--muted)">${Math.min(100,Math.round(d.mid/300*100))}% to 300</span></div>
+      <div class="pbar"><div class="pfill" style="width:${Math.min(100,d.mid/3)}%;background:#42A5F5"></div></div></div>
+      <div class="prow"><div class="plbl"><span>💥 Long — ${d.long} made</span><span style="color:var(--muted)">${Math.min(100,Math.round(d.long/200*100))}% to 200</span></div>
+      <div class="pbar"><div class="pfill" style="width:${Math.min(100,d.long/2)}%;background:#AB47BC"></div></div></div>
+    </div>
+    <div class="stitle">Game sessions</div>
+    <div class="game-rec">
+      <div class="gr-row"><span>👤</span><span style="flex:1;font-weight:700">1v1</span><span style="color:var(--muted)">${d['1v1mins']||0} min played</span><span style="font-weight:700;margin-left:8px">${Math.round((d['1v1mins']||0)*MINS_PTS)} pts</span></div>
+      <div class="gr-row"><span>👥</span><span style="flex:1;font-weight:700">3v3</span><span style="color:var(--muted)">${d['3v3mins']||0} min played</span><span style="font-weight:700;margin-left:8px">${Math.round((d['3v3mins']||0)*MINS_PTS)} pts</span></div>
+      <div class="gr-row" style="border-bottom:none"><span>🏟️</span><span style="flex:1;font-weight:700">5v5</span><span style="color:var(--muted)">${d['5v5mins']||0} min played</span><span style="font-weight:700;margin-left:8px">${Math.round((d['5v5mins']||0)*MINS_PTS)} pts</span></div>
+    </div>`;
+}
+
+const COACH_PW='1973';
+
+function openCoachModal(){
+  document.getElementById('coachModal').classList.add('open');
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwErr').classList.remove('show');
+  document.getElementById('pwSection').style.display='block';
+  document.getElementById('coachPanel').classList.remove('open');
+  document.getElementById('overridePlayer').value='';
+  setTimeout(()=>document.getElementById('pwInput').focus(),100);
+}
+
+function closeCoachModal(){
+  document.getElementById('coachModal').classList.remove('open');
+}
+
+function checkPw(){
+  const val=document.getElementById('pwInput').value.trim();
+  if(val===COACH_PW){
+    document.getElementById('pwSection').style.display='none';
+    document.getElementById('coachPanel').classList.add('open');
+    document.getElementById('pwErr').classList.remove('show');
+  } else {
+    document.getElementById('pwErr').classList.add('show');
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+function loadOverridePlayer(){
+  const sel=document.getElementById('overridePlayer').value;
+  if(!sel)return;
+  const key=PLAYERS.find(p=>p.name+' '+p.num===sel||sel===p.name+' '+p.num);
+  const fullKey=key?pkey(key):sel;
+  const d=playerData[fullKey]||{short:0,mid:0,long:0,'1v1mins':0,'3v3mins':0,'5v5mins':0};
+  document.getElementById('ov-short').value=d.short||0;
+  document.getElementById('ov-mid').value=d.mid||0;
+  document.getElementById('ov-long').value=d.long||0;
+  document.getElementById('ov-1v1').value=d['1v1mins']||0;
+  document.getElementById('ov-3v3').value=d['3v3mins']||0;
+  document.getElementById('ov-5v5').value=d['5v5mins']||0;
+}
+
+function getOverrideKey(){
+  const sel=document.getElementById('overridePlayer').value;
+  if(!sel)return null;
+  const p=PLAYERS.find(p=>p.name+' #'+p.num.replace('#','')=== sel||pkey(p)===sel||p.name===sel.split(' ')[0]);
+  return p?pkey(p):null;
+}
+
+async function coachSave(){
+  const key=getOverrideKey();
+  if(!key){showCoachToast('Select a player first.');return;}
+  const d=playerData[key]||{};
+  d.short=Math.max(0,parseInt(document.getElementById('ov-short').value)||0);
+  d.mid=Math.max(0,parseInt(document.getElementById('ov-mid').value)||0);
+  d.long=Math.max(0,parseInt(document.getElementById('ov-long').value)||0);
+  d['1v1mins']=Math.max(0,parseInt(document.getElementById('ov-1v1').value)||0);
+  d['3v3mins']=Math.max(0,parseInt(document.getElementById('ov-3v3').value)||0);
+  d['5v5mins']=Math.max(0,parseInt(document.getElementById('ov-5v5').value)||0);
+  playerData[key]=d;
+  await persist();
+  renderLB();
+  renderStats();
+  showCoachToast('✅ Stats updated for '+key.split(' ')[0]+'!');
+}
+
+async function coachReset(){
+  const key=getOverrideKey();
+  if(!key){showCoachToast('Select a player first.');return;}
+  const name=key.split(' ')[0];
+  if(!confirm('Reset ALL stats for '+name+' to zero? This cannot be undone.')){return;}
+  playerData[key]={short:0,mid:0,long:0,'1v1mins':0,'3v3mins':0,'5v5mins':0};
+  await persist();
+  loadOverridePlayer();
+  renderLB();
+  renderStats();
+  showCoachToast('🗑 '+name+'\'s stats have been reset.');
+}
+
+function showCoachToast(msg){
+  const t=document.getElementById('coachToast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+async function loadDailyQuote(){
+  const today=new Date().toDateString();
+  const cacheKey='bf-quote-'+today;
+  const el=document.getElementById('quoteText');
+  if(!el)return;
+  try{
+    const cached=localStorage.getItem(cacheKey);
+    if(cached){el.textContent=cached;el.classList.remove('q-loading');return;}
+  }catch(e){}
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:80,
+        messages:[{role:'user',content:'Give me ONE short punchy motivational quote (under 12 words) for teenage basketball players grinding hard through summer training. Make it feel raw, real and energizing — no clichés. Just the quote text, nothing else, no quotation marks, no attribution.'}]
+      })
+    });
+    const data=await res.json();
+    const quote=data.content&&data.content[0]?data.content[0].text.trim():'The gym is open. Your competition is sleeping.';
+    el.textContent=quote;el.classList.remove('q-loading');
+    try{localStorage.setItem(cacheKey,quote);}catch(e){}
+  }catch(e){
+    el.textContent='Your future self is watching. Make them proud.';
+    el.classList.remove('q-loading');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
