@@ -206,6 +206,12 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite
 .tier{background:white;border-radius:9px;padding:9px 12px;border:1.5px solid #E5E3DC;display:flex;align-items:center;gap:9px}
 .tier-name{font-weight:700;font-size:0.8rem}
 .tier-sub{font-size:0.63rem;color:var(--muted)}
+/* STICKY SAVE BAR */
+.sticky-save-bar{position:fixed;bottom:0;left:0;right:0;background:var(--navy);padding:10px 14px 14px;display:flex;align-items:center;gap:10px;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,0.25);transform:translateY(100%);transition:transform 0.3s ease}
+.sticky-save-bar.visible{transform:translateY(0)}
+.sticky-pts-preview{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--gold);flex-shrink:0}
+.sticky-save-btn{flex:1;padding:13px;background:var(--gold);color:var(--navy);border:none;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;cursor:pointer}
+.sticky-save-btn:active{opacity:0.88}
 .loading-overlay{text-align:center;padding:2rem 1rem;color:var(--muted);font-size:0.8rem}
 </style>
 </head>
@@ -351,10 +357,16 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite
       <div class="r-icon">⚠️</div>
       <div>
         <div class="r-text">Don't forget to save your session!</div>
-        <div class="r-sub">Points won't show on the leaderboard until you save below.</div>
+        <div class="r-sub">Points won't show on the leaderboard until you save.</div>
       </div>
     </div>
-    <button class="save-btn" onclick="saveSession()">💾 SAVE MY SESSION</button>
+    <div style="height:80px"></div><!-- spacer for sticky bar -->
+  </div><!-- end log section -->
+
+  <!-- STICKY SAVE BAR -->
+  <div class="sticky-save-bar" id="stickySaveBar">
+    <div class="sticky-pts-preview" id="stickyPts">0 pts this session</div>
+    <button class="sticky-save-btn" onclick="saveSession()">💾 SAVE MY SESSION</button>
   </div>
 
   <!-- LEADERBOARD -->
@@ -500,7 +512,8 @@ function pcolor(name){const p=PLAYERS.find(x=>pkey(x)===name);return p?p.color:'
 function initials(name){return name.split(' ').map(w=>w.replace('#','')).filter(w=>w&&isNaN(w)).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 
 function seedFor(name){
-  return{short:0,mid:0,long:0,'1v1mins':60,'3v3mins':0,'5v5mins':0};
+  // 240 pts: 300 short (30pts) + 300 mid (60pts) + 200 long (150pts) = 240pts
+  return{short:300,mid:300,long:200,'1v1mins':0,'3v3mins':0,'5v5mins':0};
 }
 
 async function init(){
@@ -620,12 +633,21 @@ function setTime(game,mins){
   updateScoreboard();
 }
 function updateScoreboard(){
-  document.getElementById('totalPts').textContent=calcSession();
+  const total=calcSession();
+  document.getElementById('totalPts').textContent=total;
   document.getElementById('bd-s').textContent=Math.round(shots.short*SM.short);
   document.getElementById('bd-m').textContent=Math.round(shots.mid*SM.mid);
   document.getElementById('bd-l').textContent=Math.round(shots.long*SM.long);
   const gp=Math.round((gameMins['1v1']+gameMins['3v3']+gameMins['5v5'])*MINS_PTS);
   document.getElementById('bd-g').textContent=gp;
+  const bar=document.getElementById('stickySaveBar');
+  const preview=document.getElementById('stickyPts');
+  if(total>0){
+    bar.classList.add('visible');
+    preview.textContent='+'+total+' pts ready to save';
+  } else {
+    bar.classList.remove('visible');
+  }
 }
 
 async function persist(){
@@ -658,9 +680,11 @@ async function saveSession(){
   });
   document.getElementById('totalPts').textContent='0';
   ['bd-s','bd-m','bd-l','bd-g'].forEach(id=>document.getElementById(id).textContent='0');
+  document.getElementById('stickySaveBar').classList.remove('visible');
   const firstName=PLAYERS.find(x=>pkey(x)===currentPlayer)?.name||'Player';
   clearDirty();
   showToast('🔥 +'+earned+' pts saved, '+firstName+'! Leaderboard updated.');
+  fetchFreshQuote();
   renderLB();
   renderStats();
 }
@@ -719,6 +743,10 @@ function _doShowSec(id,el){
   document.getElementById(id).classList.add('active');
   if(el) el.classList.add('active');
   else document.querySelectorAll('.ntab').forEach(t=>{if(t.getAttribute('onclick')?.includes("'"+id+"'"))t.classList.add('active');});
+  // hide sticky save bar when not on log tab
+  const bar=document.getElementById('stickySaveBar');
+  if(id!=='log') bar.classList.remove('visible');
+  else if(calcSession()>0) bar.classList.add('visible');
   if(id==='board')renderLB();
   if(id==='mystats')renderStats();
 }
@@ -911,15 +939,17 @@ function showCoachToast(msg){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-async function loadDailyQuote(){
+async function fetchQuote(bustCache){
   const today=new Date().toDateString();
   const cacheKey='bf-quote-'+today;
   const el=document.getElementById('quoteText');
   if(!el)return;
-  try{
-    const cached=localStorage.getItem(cacheKey);
-    if(cached){el.textContent=cached;el.classList.remove('q-loading');return;}
-  }catch(e){}
+  if(!bustCache){
+    try{
+      const cached=localStorage.getItem(cacheKey);
+      if(cached){el.textContent=cached;el.classList.remove('q-loading');return;}
+    }catch(e){}
+  }
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
@@ -927,18 +957,29 @@ async function loadDailyQuote(){
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:80,
-        messages:[{role:'user',content:'Give me ONE short punchy motivational quote (under 12 words) for teenage basketball players grinding hard through summer training. Make it feel raw, real and energizing — no clichés. Just the quote text, nothing else, no quotation marks, no attribution.'}]
+        messages:[{role:'user',content:'Give me ONE short punchy motivational quote (under 12 words) for teenage basketball players grinding hard through summer training. Make it feel raw, real and energizing — no clichés. Vary it every time — surprise me. Just the quote text, nothing else, no quotation marks, no attribution.'}]
       })
     });
     const data=await res.json();
-    const quote=data.content&&data.content[0]?data.content[0].text.trim():'The gym is open. Your competition is sleeping.';
-    el.textContent=quote;el.classList.remove('q-loading');
-    try{localStorage.setItem(cacheKey,quote);}catch(e){}
+    const quote=data.content&&data.content[0]?data.content[0].text.trim():'Outwork everyone. Every. Single. Day.';
+    el.textContent=quote;
+    el.classList.remove('q-loading');
+    // animate the quote bar briefly on post-save
+    if(bustCache){
+      el.style.transition='opacity 0.3s';
+      el.style.opacity='0';
+      setTimeout(()=>{el.textContent=quote;el.style.opacity='1';},300);
+    }
+    try{if(!bustCache)localStorage.setItem(cacheKey,quote);}catch(e){}
   }catch(e){
-    el.textContent='Your future self is watching. Make them proud.';
+    const fallbacks=['Outwork everyone. Every. Single. Day.','Your future self is watching. Make them proud.','The gym is open. Your competition is sleeping.','No days off. No excuses. Just work.'];
+    el.textContent=fallbacks[Math.floor(Math.random()*fallbacks.length)];
     el.classList.remove('q-loading');
   }
 }
+
+function loadDailyQuote(){return fetchQuote(false);}
+function fetchFreshQuote(){return fetchQuote(true);}
 
 init();
 </script>
