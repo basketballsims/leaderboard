@@ -102,7 +102,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite
 /* COACH BUTTON is now inline in greeting-bar */
 
 /* COACH MODAL OVERLAY */
-.modal-backdrop{display:none;min-height:520px;background:rgba(0,0,0,0.55);align-items:flex-start;justify-content:center;padding-top:2rem}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);align-items:flex-start;justify-content:center;padding-top:2rem;z-index:500;overflow-y:auto}
 .modal-backdrop.open{display:flex}
 .modal{background:white;border-radius:16px;padding:1.2rem;width:calc(100% - 2rem);max-width:380px}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;color:var(--navy);margin-bottom:0.25rem}
@@ -541,7 +541,23 @@ async function init(){
     const res=await window.storage.get('bf-grind-data');
     if(res&&res.value){
       playerData=JSON.parse(res.value);
-      PLAYERS.forEach(p=>{if(!playerData[pkey(p)])playerData[pkey(p)]=seedFor(pkey(p));});
+      // Ensure every player exists and has at least 240pt baseline
+      let changed=false;
+      PLAYERS.forEach(p=>{
+        const k=pkey(p);
+        if(!playerData[k]){
+          playerData[k]=seedFor(k);
+          changed=true;
+        } else {
+          // Enforce minimums — players can only go up from 240, never below
+          const d=playerData[k];
+          const base=seedFor(k);
+          if((d.short||0)<base.short){d.short=base.short;changed=true;}
+          if((d.mid||0)<base.mid){d.mid=base.mid;changed=true;}
+          if((d.long||0)<base.long){d.long=base.long;changed=true;}
+        }
+      });
+      if(changed) await persist();
     } else {
       PLAYERS.forEach(p=>{playerData[pkey(p)]=seedFor(pkey(p));});
       await persist();
