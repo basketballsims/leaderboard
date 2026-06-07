@@ -219,7 +219,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite
 
 <h2 class="sr-only">Burlington Force summer grind tracker — personalized shot logger and live leaderboard</h2>
 
-<!-- PLAYER PICKER (shown only on first visit) -->
+<!-- PLAYER PICKER (shown only on first visit / after admin switch) -->
 <div id="pickerScreen" style="display:none">
   <div style="background:var(--navy);padding:1.4rem 1rem 1rem;text-align:center">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);letter-spacing:2px">🏀 Summer Grind</div>
@@ -227,7 +227,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite
   </div>
   <div class="picker-screen">
     <div class="pick-title">Pick your name</div>
-    <div class="pick-sub">We'll remember you on this device. You only need to do this once.</div>
+    <div class="pick-sub">This device will be locked to your name. Only the coach can change it later.</div>
     <div class="player-list" id="playerList"></div>
   </div>
 </div>
@@ -417,6 +417,21 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite
       <div class="tier"><span style="font-size:1.1rem">🌱</span><div><div class="tier-name">Getting Started — 0–149 pts</div><div class="tier-sub">First rep is the hardest</div></div></div>
     </div>
   </div>
+  <!-- SWITCH PLAYER MODAL (admin password required) -->
+  <div class="modal-backdrop" id="switchModal">
+    <div class="modal" style="text-align:center">
+      <div style="font-size:1.8rem;margin-bottom:0.4rem">🔐</div>
+      <div class="modal-title" style="display:block">Coach Access Required</div>
+      <div class="modal-sub" style="margin-bottom:1rem">Switching players is locked. Enter the admin password to change the player on this device.</div>
+      <div class="pw-row" style="justify-content:center">
+        <input class="pw-input" id="switchPwInput" type="password" inputmode="numeric" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkSwitchPw()">
+        <button class="pw-btn" onclick="checkSwitchPw()">Enter</button>
+      </div>
+      <div class="pw-err" id="switchPwErr">Wrong password. Try again.</div>
+      <button class="modal-close" onclick="closeSwitchModal()" style="margin-top:0.8rem">Cancel</button>
+    </div>
+  </div>
+
   <!-- UNSAVED CHANGES MODAL -->
   <div class="modal-backdrop" id="unsavedModal">
     <div class="modal" style="text-align:center">
@@ -561,11 +576,35 @@ function selectPlayer(key){
 }
 
 function switchPlayer(){
+  // Always require admin password to switch — prevents players changing to others
   if(hasUnsaved()){
-    showUnsavedModal(()=>_doSwitch());
+    showUnsavedModal(()=>openSwitchModal());
     return;
   }
-  _doSwitch();
+  openSwitchModal();
+}
+
+function openSwitchModal(){
+  document.getElementById('switchPwInput').value='';
+  document.getElementById('switchPwErr').classList.remove('show');
+  document.getElementById('switchModal').classList.add('open');
+  setTimeout(()=>document.getElementById('switchPwInput').focus(),100);
+}
+
+function closeSwitchModal(){
+  document.getElementById('switchModal').classList.remove('open');
+}
+
+function checkSwitchPw(){
+  const val=document.getElementById('switchPwInput').value.trim();
+  if(val===COACH_PW){
+    closeSwitchModal();
+    _doSwitch();
+  } else {
+    document.getElementById('switchPwErr').classList.add('show');
+    document.getElementById('switchPwInput').value='';
+    document.getElementById('switchPwInput').focus();
+  }
 }
 
 function _doSwitch(){
