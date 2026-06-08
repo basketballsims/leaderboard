@@ -31,7 +31,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite
 .quote-bar{background:var(--navy);padding:11px 14px 10px;display:flex;align-items:flex-start;gap:8px}
 .q-mark{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--gold);line-height:0.75;flex-shrink:0;margin-top:3px}
 .q-text{font-size:0.8rem;color:rgba(255,255,255,0.88);line-height:1.45;font-style:italic;flex:1}
-.q-loading{color:rgba(255,255,255,0.35);font-size:0.72rem}
 
 /* HERO */
 .hero{background:var(--navy);padding:0.7rem 1rem 0;text-align:center;border-top:1px solid rgba(255,255,255,0.07)}
@@ -236,7 +235,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--offwhite
 <div id="mainApp" style="display:none">
   <div class="quote-bar">
     <div class="q-mark">"</div>
-    <div class="q-text q-loading" id="quoteText">Loading today's quote...</div>
+    <div class="q-text" id="quoteText"></div>
   </div>
   <div class="hero">
     <div class="hero-title">🏀 Summer Grind</div>
@@ -1069,47 +1068,136 @@ function showCoachToast(msg){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-async function fetchQuote(bustCache){
-  const today=new Date().toDateString();
-  const cacheKey='bf-quote-'+today;
-  const el=document.getElementById('quoteText');
-  if(!el)return;
-  if(!bustCache){
-    try{
-      const cached=localStorage.getItem(cacheKey);
-      if(cached){el.textContent=cached;el.classList.remove('q-loading');return;}
-    }catch(e){}
-  }
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:80,
-        messages:[{role:'user',content:'Give me ONE short punchy motivational quote (under 12 words) for teenage basketball players grinding hard through summer training. Make it feel raw, real and energizing — no clichés. Vary it every time — surprise me. Just the quote text, nothing else, no quotation marks, no attribution.'}]
-      })
-    });
-    const data=await res.json();
-    const quote=data.content&&data.content[0]?data.content[0].text.trim():'Outwork everyone. Every. Single. Day.';
-    el.textContent=quote;
-    el.classList.remove('q-loading');
-    // animate the quote bar briefly on post-save
-    if(bustCache){
-      el.style.transition='opacity 0.3s';
-      el.style.opacity='0';
-      setTimeout(()=>{el.textContent=quote;el.style.opacity='1';},300);
-    }
-    try{if(!bustCache)localStorage.setItem(cacheKey,quote);}catch(e){}
-  }catch(e){
-    const fallbacks=['Outwork everyone. Every. Single. Day.','Your future self is watching. Make them proud.','The gym is open. Your competition is sleeping.','No days off. No excuses. Just work.'];
-    el.textContent=fallbacks[Math.floor(Math.random()*fallbacks.length)];
-    el.classList.remove('q-loading');
-  }
+const QUOTES=[
+  // JUNE (days 1-30)
+  "The work you do in June shows up in August.",
+  "Nobody's coming to save you. Pick up the ball.",
+  "Champions train when no one's watching.",
+  "Every rep is a vote for the player you're becoming.",
+  "Uncomfortable today. Unstoppable tomorrow.",
+  "Your excuses don't play defense.",
+  "The gym doesn't care about your feelings. Get in it.",
+  "Small moves. Big results. Stay consistent.",
+  "Pain today. Trophy tomorrow.",
+  "The player who outworks everyone wins everything.",
+  "Tired is a feeling. Quitting is a choice.",
+  "Be the hardest worker in every gym you walk into.",
+  "Your teammates are watching. Raise the standard.",
+  "Skill is earned. Never given.",
+  "One more rep. One more shot. One more day ahead.",
+  "The court doesn't lie. Your effort shows.",
+  "Summer is where legends are built.",
+  "You don't rise to the moment. You fall to your habits.",
+  "Push through. The other side of hard is great.",
+  "Sweat now. Celebrate later.",
+  "Outwork your doubts every single session.",
+  "Good players practice until they get it right. Great players practice until they can't get it wrong.",
+  "Every missed shot is data. Use it.",
+  "The best view comes after the hardest climb.",
+  "Lock in. Level up.",
+  "Make today's version of you better than yesterday's.",
+  "The ball doesn't care about your bad day.",
+  "Show up. Put in work. Go home better.",
+  "Iron sharpens iron. Push your teammates.",
+  "June grind sets the August shine.",
+  // JULY (days 31-61)
+  "Halfway through summer. Have you earned your spot?",
+  "The scoreboard doesn't lie and neither does the leaderboard.",
+  "Stay hungry. The top spot is right there.",
+  "Progress isn't loud. But it's real.",
+  "One session at a time. Stack the work.",
+  "You can sleep in September.",
+  "Character is built in the reps nobody sees.",
+  "Pressure makes diamonds. Embrace the grind.",
+  "More shots. Fewer excuses.",
+  "The hardest part is starting. You already did that.",
+  "Chase progress, not perfection.",
+  "Work so hard your competition thinks you're gifted.",
+  "Every great player was once where you are now.",
+  "Log it. Own it. Improve it.",
+  "This is what dedication looks like.",
+  "Nobody remembers the player who almost worked hard.",
+  "Your future self is logging every session.",
+  "Trust the process. The numbers don't lie.",
+  "Winning is a habit. So is losing. Choose.",
+  "The best shot is the next one.",
+  "Make your highlight reel in practice, not just games.",
+  "Intensity today. Dominance in the fall.",
+  "You belong on that leaderboard. Prove it.",
+  "Each shot logged is a step toward elite.",
+  "Discipline beats motivation every single time.",
+  "Keep grinding. The top 5 is watching.",
+  "Hard days build hard players.",
+  "Do it tired. Do it anyway.",
+  "Show the leaderboard who you really are.",
+  "Effort is always in season.",
+  "Skills pay the bills. Put in the work.",
+  // AUGUST (days 62-90)
+  "Final stretch. Everything counts double now.",
+  "This is crunch time. Bring everything you've got.",
+  "The players who grinded all summer own the fall.",
+  "Don't let up. The best is still ahead.",
+  "August separates the committed from the casual.",
+  "Finish what you started. No half measures.",
+  "End of summer. Time to see what you built.",
+  "The only thing left between you and the top is effort.",
+  "Carry the summer grind into every game this season.",
+  "You've been putting in work. Don't stop now.",
+  "Elite finishes what average quits.",
+  "The scoreboard resets. The work ethic doesn't.",
+  "Close out the summer like a champion.",
+  "This is your moment. Take it.",
+  "How you finish is how you start next season.",
+  "Every shot you logged made you better. Keep going.",
+  "Leave nothing on the table. Season's almost here.",
+  "The grind prepared you. Now go show it.",
+  "Summer built the foundation. Now build the house.",
+  "Championships are decided in summers like this one.",
+  "Finish strong. Your teammates are counting on you.",
+  "The best players don't wait for the season. They create it.",
+  "One final push. Make it count.",
+  "You worked for this. Don't give it back.",
+  "Summer's almost done. Your development isn't.",
+  "Be the reason your team wins this fall.",
+  "Log your last sessions like they're your most important.",
+  "The player you are now is who shows up in September.",
+  "End this summer proud of every rep you put in.",
+  "You outworked the summer. Now go outwork the competition."
+];
+
+function getDailyQuote(){
+  // Rotate through all 90 quotes based on day of year so it's consistent per day
+  const now=new Date();
+  const start=new Date(now.getFullYear(),0,0);
+  const diff=now-start;
+  const dayOfYear=Math.floor(diff/(1000*60*60*24));
+  return QUOTES[dayOfYear % QUOTES.length];
 }
 
-function loadDailyQuote(){return fetchQuote(false);}
-function fetchFreshQuote(){return fetchQuote(true);}
+function getSessionQuote(){
+  // On save: pick a random quote different from today's
+  const daily=getDailyQuote();
+  const others=QUOTES.filter(q=>q!==daily);
+  return others[Math.floor(Math.random()*others.length)];
+}
+
+function loadDailyQuote(){
+  const el=document.getElementById('quoteText');
+  if(!el)return;
+  el.textContent=getDailyQuote();
+}
+
+function fetchFreshQuote(){
+  const el=document.getElementById('quoteText');
+  if(!el)return;
+  const quote=getSessionQuote();
+  el.style.transition='opacity 0.3s';
+  el.style.opacity='0';
+  setTimeout(()=>{
+    el.textContent=quote;
+    el.style.opacity='1';
+  },300);
+}
 
 init();
 </script>
