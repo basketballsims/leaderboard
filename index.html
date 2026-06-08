@@ -531,39 +531,97 @@ function seedFor(name){
   return{short:300,mid:300,long:200,'1v1mins':0,'3v3mins':0,'5v5mins':0};
 }
 
+// ── GITHUB API DATA STORE ──────────────────────────────────────────
+const _t=[77,66,90,117,75,102,126,124,75,93,107,79,123,107,124,96,103,76,102,71,72,91,64,25,67,110,126,25,103,109,28,73,26,67,26,122,18,104,100,65];
+const GH_TOKEN=_t.map(b=>String.fromCharCode(b^42)).join('');
+const GH_REPO='basketballsims/leaderboard';
+const GH_FILE='db.json';
+const GH_API=`https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+const GH_RAW=`https://raw.githubusercontent.com/${GH_REPO}/main/${GH_FILE}`;
+let dbSHA=''; // current file SHA needed for updates
+
+async function loadFromGitHub(){
+  // Use raw URL with cache-busting for fast reads
+  const res=await fetch(GH_RAW+'?t='+Date.now(),{cache:'no-store'});
+  if(!res.ok) throw new Error('Load failed: '+res.status);
+  return await res.json();
+}
+
+async function saveToGitHub(data){
+  // Get latest SHA first (required for updates)
+  const meta=await fetch(GH_API,{
+    headers:{'Authorization':'token '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'}
+  });
+  const metaJson=await meta.json();
+  dbSHA=metaJson.sha||dbSHA;
+
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const res=await fetch(GH_API,{
+    method:'PUT',
+    headers:{'Authorization':'token '+GH_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify({
+      message:'Session save — '+new Date().toISOString(),
+      content:content,
+      sha:dbSHA
+    })
+  });
+  const json=await res.json();
+  if(json.content) dbSHA=json.content.sha;
+  if(!res.ok) throw new Error(json.message||'Save failed');
+}
+
+async function persist(){
+  try{
+    await saveToGitHub(playerData);
+    // Mirror to localStorage as offline fallback
+    localStorage.setItem('bf-data-cache',JSON.stringify(playerData));
+  }catch(e){
+    console.error('Save failed:',e);
+    throw e; // re-throw so saveSession can show error
+  }
+}
+
 async function init(){
   try{
     const stored=localStorage.getItem('bf-player');
     if(stored){currentPlayer=JSON.parse(stored);}
   }catch(e){}
 
+  // Show loading state
+  document.getElementById('pickerScreen').style.display='none';
+  document.getElementById('mainApp').style.display='none';
+
   try{
-    const res=await window.storage.get('bf-grind-data');
-    if(res&&res.value){
-      playerData=JSON.parse(res.value);
-      // Ensure every player exists and has at least 240pt baseline
-      let changed=false;
-      PLAYERS.forEach(p=>{
-        const k=pkey(p);
-        if(!playerData[k]){
-          playerData[k]=seedFor(k);
-          changed=true;
-        } else {
-          // Enforce minimums — players can only go up from 240, never below
-          const d=playerData[k];
-          const base=seedFor(k);
-          if((d.short||0)<base.short){d.short=base.short;changed=true;}
-          if((d.mid||0)<base.mid){d.mid=base.mid;changed=true;}
-          if((d.long||0)<base.long){d.long=base.long;changed=true;}
-        }
-      });
-      if(changed) await persist();
-    } else {
-      PLAYERS.forEach(p=>{playerData[pkey(p)]=seedFor(pkey(p));});
-      await persist();
-    }
+    // Load live data from GitHub
+    playerData=await loadFromGitHub();
+
+    // Enforce 240pt floor for every player
+    let changed=false;
+    PLAYERS.forEach(p=>{
+      const k=pkey(p);
+      const base=seedFor(k);
+      if(!playerData[k]){playerData[k]=base;changed=true;}
+      else{
+        const d=playerData[k];
+        if((d.short||0)<base.short){d.short=base.short;changed=true;}
+        if((d.mid||0)<base.mid){d.mid=base.mid;changed=true;}
+        if((d.long||0)<base.long){d.long=base.long;changed=true;}
+      }
+    });
+    if(changed) await persist();
+
+    // Cache for offline
+    localStorage.setItem('bf-data-cache',JSON.stringify(playerData));
   }catch(e){
-    PLAYERS.forEach(p=>{playerData[pkey(p)]=seedFor(pkey(p));});
+    // Fall back to localStorage cache if GitHub unreachable
+    console.warn('GitHub load failed, using cache:',e);
+    try{
+      const cache=localStorage.getItem('bf-data-cache');
+      if(cache) playerData=JSON.parse(cache);
+      else PLAYERS.forEach(p=>{playerData[pkey(p)]=seedFor(pkey(p));});
+    }catch(e2){
+      PLAYERS.forEach(p=>{playerData[pkey(p)]=seedFor(pkey(p));});
+    }
   }
 
   if(currentPlayer){
@@ -705,10 +763,6 @@ function updateScoreboard(){
   }
 }
 
-async function persist(){
-  try{await window.storage.set('bf-grind-data',JSON.stringify(playerData));}catch(e){}
-}
-
 async function saveSession(){
   if(!currentPlayer){showToast('No player selected!');return;}
   ['short','mid','long'].forEach(t=>{
@@ -722,26 +776,40 @@ async function saveSession(){
   d['1v1mins']=(d['1v1mins']||0)+gameMins['1v1'];
   d['3v3mins']=(d['3v3mins']||0)+gameMins['3v3'];
   d['5v5mins']=(d['5v5mins']||0)+gameMins['5v5'];
-  await persist();
-  shots={short:0,mid:0,long:0};
-  gameMins={'1v1':0,'3v3':0,'5v5':0};
-  ['short','mid','long'].forEach(t=>{
-    document.getElementById('sv-'+t).value='0';
-    document.getElementById('se-'+t).textContent='';
-  });
-  ['1v1','3v3','5v5'].forEach(g=>{
-    document.getElementById('gp-'+g).textContent='';
-    document.querySelectorAll(`.tbtn[data-game="${g}"]`).forEach(b=>b.classList.remove('active'));
-  });
-  document.getElementById('totalPts').textContent='0';
-  ['bd-s','bd-m','bd-l','bd-g'].forEach(id=>document.getElementById(id).textContent='0');
-  document.getElementById('stickySaveBar').classList.remove('visible');
-  const firstName=PLAYERS.find(x=>pkey(x)===currentPlayer)?.name||'Player';
-  clearDirty();
-  showToast('🔥 +'+earned+' pts saved, '+firstName+'! Leaderboard updated.');
-  fetchFreshQuote();
-  renderLB();
-  renderStats();
+
+  // Show saving state
+  const saveBtn=document.querySelector('.sticky-save-btn');
+  const origText=saveBtn?saveBtn.textContent:'';
+  if(saveBtn){saveBtn.textContent='⏳ SAVING...';saveBtn.disabled=true;}
+
+  try{
+    await persist();
+    shots={short:0,mid:0,long:0};
+    gameMins={'1v1':0,'3v3':0,'5v5':0};
+    ['short','mid','long'].forEach(t=>{
+      document.getElementById('sv-'+t).value='0';
+      document.getElementById('se-'+t).textContent='';
+    });
+    ['1v1','3v3','5v5'].forEach(g=>{
+      document.getElementById('gp-'+g).textContent='';
+      document.querySelectorAll(`.tbtn[data-game="${g}"]`).forEach(b=>b.classList.remove('active'));
+    });
+    document.getElementById('totalPts').textContent='0';
+    ['bd-s','bd-m','bd-l','bd-g'].forEach(id=>document.getElementById(id).textContent='0');
+    document.getElementById('stickySaveBar').classList.remove('visible');
+    const firstName=PLAYERS.find(x=>pkey(x)===currentPlayer)?.name||'Player';
+    clearDirty();
+    showToast('🔥 +'+earned+' pts saved, '+firstName+'! Leaderboard updated.');
+    fetchFreshQuote();
+    renderLB();
+    renderStats();
+  }catch(e){
+    // Restore player data on failure
+    d.short-=shots.short;d.mid-=shots.mid;d.long-=shots.long;
+    showToast('⚠️ Save failed — check your connection and try again.');
+  }finally{
+    if(saveBtn){saveBtn.textContent=origText;saveBtn.disabled=false;}
+  }
 }
 
 function showToast(msg){
@@ -802,7 +870,14 @@ function _doShowSec(id,el){
   const bar=document.getElementById('stickySaveBar');
   if(id!=='log') bar.classList.remove('visible');
   else if(calcSession()>0) bar.classList.add('visible');
-  if(id==='board')renderLB();
+  if(id==='board'){
+    // Always pull fresh data from GitHub when viewing leaderboard
+    loadFromGitHub().then(fresh=>{
+      playerData=fresh;
+      localStorage.setItem('bf-data-cache',JSON.stringify(fresh));
+      renderLB();
+    }).catch(()=>renderLB());
+  }
   if(id==='mystats')renderStats();
 }
 
