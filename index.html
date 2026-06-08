@@ -546,27 +546,67 @@ async function loadFromGitHub(){
   return await res.json();
 }
 
-async function saveToGitHub(data){
-  // Get latest SHA first (required for updates)
-  const meta=await fetch(GH_API,{
-    headers:{'Authorization':'token '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'}
+async function getLatestSHA(){
+  const res=await fetch(GH_API,{
+    headers:{'Authorization':'token '+GH_TOKEN,'Accept':'application/vnd.github.v3+json'},
+    cache:'no-store'
   });
-  const metaJson=await meta.json();
-  dbSHA=metaJson.sha||dbSHA;
+  if(!res.ok) throw new Error('Could not fetch SHA: '+res.status);
+  const json=await res.json();
+  dbSHA=json.sha;
+  return dbSHA;
+}
+
+async function saveToGitHub(data){
+  // Always get a fresh SHA — stale SHAs cause 409 conflicts
+  await getLatestSHA();
 
   const content=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
   const res=await fetch(GH_API,{
     method:'PUT',
-    headers:{'Authorization':'token '+GH_TOKEN,'Content-Type':'application/json'},
+    headers:{
+      'Authorization':'token '+GH_TOKEN,
+      'Content-Type':'application/json',
+      'Accept':'application/vnd.github.v3+json'
+    },
     body:JSON.stringify({
       message:'Session save — '+new Date().toISOString(),
       content:content,
       sha:dbSHA
     })
   });
-  const json=await res.json();
-  if(json.content) dbSHA=json.content.sha;
-  if(!res.ok) throw new Error(json.message||'Save failed');
+
+  const result=await res.json();
+
+  if(result.content){
+    // Update our cached SHA to the new one
+    dbSHA=result.content.sha;
+    return true;
+  }
+
+  // Handle conflict — SHA changed between our fetch and PUT (race condition)
+  if(res.status===409){
+    // Retry once with a fresh SHA
+    await getLatestSHA();
+    const res2=await fetch(GH_API,{
+      method:'PUT',
+      headers:{
+        'Authorization':'token '+GH_TOKEN,
+        'Content-Type':'application/json',
+        'Accept':'application/vnd.github.v3+json'
+      },
+      body:JSON.stringify({
+        message:'Session save (retry) — '+new Date().toISOString(),
+        content:content,
+        sha:dbSHA
+      })
+    });
+    const result2=await res2.json();
+    if(result2.content){dbSHA=result2.content.sha;return true;}
+    throw new Error(result2.message||'Save failed after retry');
+  }
+
+  throw new Error(result.message||'Save failed: '+res.status);
 }
 
 async function persist(){
@@ -769,20 +809,28 @@ async function saveSession(){
   });
   const hasWork=shots.short||shots.mid||shots.long||gameMins['1v1']||gameMins['3v3']||gameMins['5v5'];
   if(!hasWork){showToast('Log at least 1 shot or game first!');return;}
+
   const earned=calcSession();
   const d=playerData[currentPlayer];
+
+  // Snapshot for rollback
+  const snap={short:d.short,mid:d.mid,long:d.long,
+    '1v1mins':d['1v1mins']||0,'3v3mins':d['3v3mins']||0,'5v5mins':d['5v5mins']||0};
+
+  // Apply changes
   d.short+=shots.short;d.mid+=shots.mid;d.long+=shots.long;
   d['1v1mins']=(d['1v1mins']||0)+gameMins['1v1'];
   d['3v3mins']=(d['3v3mins']||0)+gameMins['3v3'];
   d['5v5mins']=(d['5v5mins']||0)+gameMins['5v5'];
 
-  // Show saving state
+  // Show saving state on sticky bar
   const saveBtn=document.querySelector('.sticky-save-btn');
-  const origText=saveBtn?saveBtn.textContent:'';
   if(saveBtn){saveBtn.textContent='⏳ SAVING...';saveBtn.disabled=true;}
 
   try{
     await persist();
+
+    // Clear inputs
     shots={short:0,mid:0,long:0};
     gameMins={'1v1':0,'3v3':0,'5v5':0};
     ['short','mid','long'].forEach(t=>{
@@ -796,18 +844,22 @@ async function saveSession(){
     document.getElementById('totalPts').textContent='0';
     ['bd-s','bd-m','bd-l','bd-g'].forEach(id=>document.getElementById(id).textContent='0');
     document.getElementById('stickySaveBar').classList.remove('visible');
+
     const firstName=PLAYERS.find(x=>pkey(x)===currentPlayer)?.name||'Player';
     clearDirty();
     showToast('🔥 +'+earned+' pts saved, '+firstName+'! Leaderboard updated.');
     fetchFreshQuote();
     renderLB();
     renderStats();
+
   }catch(e){
-    // Restore player data on failure
-    d.short-=shots.short;d.mid-=shots.mid;d.long-=shots.long;
-    showToast('⚠️ Save failed — check your connection and try again.');
+    // Full rollback
+    d.short=snap.short;d.mid=snap.mid;d.long=snap.long;
+    d['1v1mins']=snap['1v1mins'];d['3v3mins']=snap['3v3mins'];d['5v5mins']=snap['5v5mins'];
+    console.error('Save error:',e);
+    showToast('⚠️ Save failed — check connection & try again.');
   }finally{
-    if(saveBtn){saveBtn.textContent=origText;saveBtn.disabled=false;}
+    if(saveBtn){saveBtn.textContent='💾 SAVE MY SESSION';saveBtn.disabled=false;}
   }
 }
 
