@@ -610,14 +610,9 @@ async function saveToGitHub(data){
 }
 
 async function persist(){
-  try{
-    await saveToGitHub(playerData);
-    // Mirror to localStorage as offline fallback
-    localStorage.setItem('bf-data-cache',JSON.stringify(playerData));
-  }catch(e){
-    console.error('Save failed:',e);
-    throw e; // re-throw so saveSession can show error
-  }
+  await saveToGitHub(playerData);
+  // Mirror to localStorage as offline fallback
+  try{localStorage.setItem('bf-data-cache',JSON.stringify(playerData));}catch(e){}
 }
 
 async function init(){
@@ -1066,9 +1061,12 @@ function checkPw(){
 function loadOverridePlayer(){
   const sel=document.getElementById('overridePlayer').value;
   if(!sel)return;
-  const key=PLAYERS.find(p=>p.name+' '+p.num===sel||sel===p.name+' '+p.num);
-  const fullKey=key?pkey(key):sel;
-  const d=playerData[fullKey]||{short:0,mid:0,long:0,'1v1mins':0,'3v3mins':0,'5v5mins':0};
+  // Match dropdown value directly to playerData keys
+  const key=Object.keys(playerData).find(k=>k===sel)
+    || PLAYERS.map(pkey).find(k=>k===sel)
+    || PLAYERS.find(p=>p.name===sel.split(' ')[0])&&pkey(PLAYERS.find(p=>p.name===sel.split(' ')[0]));
+  if(!key)return;
+  const d=playerData[key]||{short:0,mid:0,long:0,'1v1mins':0,'3v3mins':0,'5v5mins':0};
   document.getElementById('ov-short').value=d.short||0;
   document.getElementById('ov-mid').value=d.mid||0;
   document.getElementById('ov-long').value=d.long||0;
@@ -1080,13 +1078,20 @@ function loadOverridePlayer(){
 function getOverrideKey(){
   const sel=document.getElementById('overridePlayer').value;
   if(!sel)return null;
-  const p=PLAYERS.find(p=>p.name+' #'+p.num.replace('#','')=== sel||pkey(p)===sel||p.name===sel.split(' ')[0]);
+  // Try direct match first (dropdown value should equal playerData key)
+  if(playerData[sel])return sel;
+  // Fallback: match by PLAYERS array
+  const p=PLAYERS.find(p=>pkey(p)===sel||p.name===sel.split(' ')[0]);
   return p?pkey(p):null;
 }
 
 async function coachSave(){
   const key=getOverrideKey();
-  if(!key){showCoachToast('Select a player first.');return;}
+  if(!key){showCoachToast('⚠️ Select a player first.');return;}
+
+  // Snapshot for rollback
+  const snap=Object.assign({},playerData[key]||{});
+
   const d=playerData[key]||{};
   d.short=Math.max(0,parseInt(document.getElementById('ov-short').value)||0);
   d.mid=Math.max(0,parseInt(document.getElementById('ov-mid').value)||0);
@@ -1095,23 +1100,44 @@ async function coachSave(){
   d['3v3mins']=Math.max(0,parseInt(document.getElementById('ov-3v3').value)||0);
   d['5v5mins']=Math.max(0,parseInt(document.getElementById('ov-5v5').value)||0);
   playerData[key]=d;
-  await persist();
-  renderLB();
-  renderStats();
-  showCoachToast('✅ Stats updated for '+key.split(' ')[0]+'!');
+
+  const btn=document.querySelector('.coach-save-btn');
+  if(btn){btn.textContent='⏳ Saving...';btn.disabled=true;}
+
+  try{
+    await persist();
+    renderLB();
+    renderStats();
+    showCoachToast('✅ Saved! '+key.split(' ')[0]+' updated on leaderboard.');
+  }catch(e){
+    // Rollback
+    playerData[key]=snap;
+    console.error('coachSave failed:',e);
+    showCoachToast('❌ Save failed: '+e.message);
+  }finally{
+    if(btn){btn.textContent='💾 Save Changes';btn.disabled=false;}
+  }
 }
 
 async function coachReset(){
   const key=getOverrideKey();
-  if(!key){showCoachToast('Select a player first.');return;}
+  if(!key){showCoachToast('⚠️ Select a player first.');return;}
   const name=key.split(' ')[0];
   if(!confirm('Reset ALL stats for '+name+' to zero? This cannot be undone.')){return;}
+
+  const snap=Object.assign({},playerData[key]);
   playerData[key]={short:0,mid:0,long:0,'1v1mins':0,'3v3mins':0,'5v5mins':0};
-  await persist();
-  loadOverridePlayer();
-  renderLB();
-  renderStats();
-  showCoachToast('🗑 '+name+'\'s stats have been reset.');
+
+  try{
+    await persist();
+    loadOverridePlayer();
+    renderLB();
+    renderStats();
+    showCoachToast('🗑 '+name+'\'s stats reset to zero.');
+  }catch(e){
+    playerData[key]=snap;
+    showCoachToast('❌ Reset failed: '+e.message);
+  }
 }
 
 function showCoachToast(msg){
